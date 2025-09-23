@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Векторный поиск</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Локальная поисковая система</h1>
+        <p class="muted">Векторная модель, TF-IDF, Apache Lucene</p>
+    </header>
+    <main>
+        <form th:action="@{/search}" method="post" class="search-form">
+            <input type="text" name="query" placeholder="Введите поисковый запрос..." required>
+            <button type="submit">Найти</button>
+        </form>
+    </main>
+</div>
+</body>
+</html>
