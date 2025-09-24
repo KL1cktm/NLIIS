@@ -1,8 +1,9 @@
 package by.yurhilevich;
 
-
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.ru.RussianAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -16,11 +17,11 @@ import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,39 +32,49 @@ public class SearchService {
 
     public List<SearchResult> search(String queryString, int maxResults) throws Exception {
         List<SearchResult> results = new ArrayList<>();
-        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexDir)));
-        IndexSearcher searcher = new IndexSearcher(reader);
-        searcher.setSimilarity(new ClassicSimilarity()); // Используем классическую TF-IDF модель
-
         Analyzer analyzer = new RussianAnalyzer();
-        QueryParser parser = new QueryParser("contents", analyzer);
 
-        String preprocessedQuery = TextProcessor.preprocess(queryString);
-        if (preprocessedQuery.isEmpty()) {
-            return results;
+        try (IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexDir)))) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            searcher.setSimilarity(new ClassicSimilarity());
+
+            QueryParser parser = new QueryParser("contents", analyzer);
+            Query query = parser.parse(queryString);
+
+            TopDocs docs = searcher.search(query, maxResults);
+            ScoreDoc[] hits = docs.scoreDocs;
+
+            List<String> queryTerms = analyze(queryString, analyzer);
+
+            for (ScoreDoc hit : hits) {
+                Document doc = searcher.doc(hit.doc);
+                String title = doc.get("title");
+                String fullText = doc.get("contents");
+                String snippet = fullText.length() > 300 ? fullText.substring(0, 300) + "..." : fullText;
+                double rank = hit.score;
+                String filePath = doc.get("path");
+
+                List<String> docTerms = analyze(fullText, analyzer);
+                List<String> presentTerms = queryTerms.stream()
+                        .filter(docTerms::contains)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                results.add(new SearchResult(title, snippet, rank, presentTerms, filePath));
+            }
         }
-
-        Query query = parser.parse(preprocessedQuery);
-        TopDocs docs = searcher.search(query, maxResults);
-        ScoreDoc[] hits = docs.scoreDocs;
-
-        Set<String> queryTerms = Arrays.stream(preprocessedQuery.split("\\s+")).collect(Collectors.toSet());
-
-        for (ScoreDoc hit : hits) {
-            Document doc = searcher.doc(hit.doc);
-            String title = doc.get("title");
-            String fullText = doc.get("contents");
-            String snippet = fullText.length() > 300 ? fullText.substring(0, 300) + "..." : fullText;
-            double rank = hit.score;
-
-            List<String> presentTerms = queryTerms.stream()
-                    .filter(term -> fullText.contains(term))
-                    .collect(Collectors.toList());
-
-            results.add(new SearchResult(title, snippet, rank, presentTerms));
-        }
-
-        reader.close();
         return results;
+    }
+
+    private List<String> analyze(String text, Analyzer analyzer) throws IOException {
+        List<String> result = new ArrayList<>();
+        TokenStream tokenStream = analyzer.tokenStream("contents", new StringReader(text));
+        CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
+        tokenStream.reset();
+        while (tokenStream.incrementToken()) {
+            result.add(attr.toString());
+        }
+        tokenStream.close();
+        return result;
     }
 }

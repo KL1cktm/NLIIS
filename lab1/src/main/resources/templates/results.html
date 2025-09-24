@@ -8,12 +8,15 @@
 <body>
 <div class="container">
   <header>
-    <h1><a href="/">Локальная поисковая система</a></h1>
+    <div class="header-content">
+      <h1><a href="/">Локальная поисковая система</a></h1>
+    </div>
+    <button id="helpBtn" class="btn btn-help">Помощь</button>
   </header>
   <main>
     <form th:action="@{/search}" method="post" class="search-form">
       <input type="text" name="query" th:value="${query}" required>
-      <button type="submit">Найти</button>
+      <button type="submit" class="btn btn-primary">Найти</button>
     </form>
 
     <div th:if="${error}" class="error-message">
@@ -26,11 +29,14 @@
         <li th:each="result : ${results}">
           <div class="result-item">
             <h4 class="result-title" th:text="${result.title}">Заголовок документа</h4>
-            <p class="snippet" th:text="${result.snippet}">Фрагмент текста...</p>
             <div class="meta">
+              <div class="file-path">
+                <b>Путь к файлу:</b> <code th:text="${result.filePath}">/path/to/your/doc.txt</code>
+              </div>
               <span>Ранг (TF-IDF Score): <b th:text="${#numbers.formatDecimal(result.rank, 1, 4)}">0.0</b></span>
               <div th:if="${result.presentTerms != null and not result.presentTerms.isEmpty()}" class="terms">
-                Слова запроса в документе: <span th:each="term, iter : ${result.presentTerms}" th:text="${term + (iter.last ? '' : ', ')}"></span>
+                <b>Слова запроса в документе:</b>
+                <span th:each="term, iter : ${result.presentTerms}" th:text="${term + (iter.last ? '' : ', ')}"></span>
               </div>
             </div>
           </div>
@@ -41,7 +47,40 @@
     <div th:if="${results != null and results.isEmpty()}">
       <p class="muted">По вашему запросу ничего не найдено.</p>
     </div>
+
   </main>
 </div>
+
+<div id="helpModal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close-btn">&times;</span>
+    <h2>Как пользоваться поиском</h2>
+    <p><b>1. Ввод запроса:</b> Введите слова для поиска в текстовое поле.</p>
+    <p><b>2. Поиск:</b> Нажмите кнопку "Найти" для получения результатов.</p>
+    <hr>
+    <p>Система автоматически ищет по всем текстовым файлам (с расширением .txt), находящимся в папке `documents` и всех ее подпапках.</p>
+    <p>Поиск является "умным": он учитывает различные формы слов (падежи, числа), поэтому вы можете вводить запросы на естественном языке.</p>
+  </div>
+</div>
+
+<script>
+  const helpBtn = document.getElementById('helpBtn');
+  const modal = document.getElementById('helpModal');
+  const closeBtn = modal.querySelector('.close-btn');
+
+  helpBtn.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+  });
+
+  closeBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+
+  window.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      modal.classList.add('hidden');
+    }
+  });
+</script>
 </body>
 </html>

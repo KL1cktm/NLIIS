@@ -36,7 +36,7 @@ public class IndexerService {
             Directory dir = FSDirectory.open(Paths.get(indexDir));
             Analyzer analyzer = new RussianAnalyzer();
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE); // Пересоздавать индекс при каждом запуске
+            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
             try (IndexWriter writer = new IndexWriter(dir, iwc)) {
                 indexDocs(writer, Paths.get(docsDir));
@@ -51,30 +51,31 @@ public class IndexerService {
     }
 
     private void indexDocs(final IndexWriter writer, Path path) throws IOException {
-        if (Files.isDirectory(path)) {
-            try (Stream<Path> files = Files.list(path)) {
-                files.forEach(p -> {
-                    try {
-                        indexDocs(writer, p);
-                    } catch (IOException e) {
-                        System.err.println("Не удалось проиндексировать " + p);
-                    }
-                });
-            }
-        } else {
-            indexDoc(writer, path);
+        if (!Files.exists(path)) {
+            System.err.println("Директория для индексации не найдена: " + path);
+            return;
+        }
+
+        try (Stream<Path> stream = Files.walk(path)) {
+            stream.filter(Files::isRegularFile)
+                    .filter(p -> p.toString().endsWith(".txt"))
+                    .forEach(file -> {
+                        try {
+                            indexDoc(writer, file);
+                        } catch (IOException e) {
+                            System.err.println("Не удалось проиндексировать файл: " + file);
+                        }
+                    });
         }
     }
 
     private void indexDoc(IndexWriter writer, Path file) throws IOException {
-        System.out.println("Индексируется файл: " + file.getFileName());
+        System.out.println("Индексируется файл: " + file);
         String content = Files.readString(file);
 
         Document doc = new Document();
-        doc.add(new StringField("path", file.toString(), Field.Store.YES));
+        doc.add(new StringField("path", file.toAbsolutePath().toString(), Field.Store.YES));
         doc.add(new TextField("title", file.getFileName().toString().replace(".txt", ""), Field.Store.YES));
-
-        // Для TF-IDF важно хранить текст в TextField
         doc.add(new TextField("contents", TextProcessor.preprocess(content), Field.Store.YES));
 
         writer.addDocument(doc);
