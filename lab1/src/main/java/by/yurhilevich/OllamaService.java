@@ -45,9 +45,7 @@ public class OllamaService {
         jsonBody.put("prompt", query);
         jsonBody.put("stream", false);
 
-        // --- ИЗМЕНЕНИЕ: Добавляем системную инструкцию ---
         jsonBody.put("system", "Отвечай на все вопросы только на русском языке. Длина ответа не должна превышать 100-150 слов.");
-        // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
         try {
             RequestBody body = RequestBody.create(jsonBody.toString(), MediaType.get("application/json"));
