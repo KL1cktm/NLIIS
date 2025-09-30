@@ -27,8 +27,13 @@ import java.util.stream.Collectors;
 @Service
 public class SearchService {
 
-    @Value("${app.index.dir}")
-    private String indexDir;
+    private final String indexDir;
+    private final OllamaService ollamaService;
+
+    public SearchService(@Value("${app.index.dir}") String indexDir, OllamaService ollamaService) {
+        this.indexDir = indexDir;
+        this.ollamaService = ollamaService;
+    }
 
     public List<SearchResult> search(String queryString, int maxResults) throws Exception {
         List<SearchResult> results = new ArrayList<>();
@@ -42,24 +47,38 @@ public class SearchService {
             Query query = parser.parse(queryString);
 
             TopDocs docs = searcher.search(query, maxResults);
-            ScoreDoc[] hits = docs.scoreDocs;
 
-            List<String> queryTerms = analyze(queryString, analyzer);
+            if (docs.scoreDocs.length == 0) {
+                System.out.println("Локальный поиск не дал результатов. Обращаемся к локальной модели Ollama...");
+                String aiResponse = ollamaService.ask(queryString); // <-- ВЫЗЫВАЕМ НОВЫЙ СЕРВИС
 
-            for (ScoreDoc hit : hits) {
-                Document doc = searcher.doc(hit.doc);
-                String title = doc.get("title");
-                String fullText = doc.get("contents");
-                double rank = hit.score;
-                String filePath = doc.get("path");
+                SearchResult aiResult = new SearchResult(
+                        "Ответ от локальной нейросети", // <-- Меняем заголовок
+                        aiResponse,
+                        0.0,
+                        List.of(),
+                        "AI_RESPONSE"
+                );
+                results.add(aiResult);
+            } else {
+                ScoreDoc[] hits = docs.scoreDocs;
+                List<String> queryTerms = analyze(queryString, analyzer);
 
-                List<String> docTerms = analyze(fullText, analyzer);
-                List<String> presentTerms = queryTerms.stream()
-                        .filter(docTerms::contains)
-                        .distinct()
-                        .collect(Collectors.toList());
+                for (ScoreDoc hit : hits) {
+                    Document doc = searcher.doc(hit.doc);
+                    String title = doc.get("title");
+                    String fullText = doc.get("contents");
+                    double rank = hit.score;
+                    String filePath = doc.get("path");
 
-                results.add(new SearchResult(title, "", rank, presentTerms, filePath));
+                    List<String> docTerms = analyze(fullText, analyzer);
+                    List<String> presentTerms = queryTerms.stream()
+                            .filter(docTerms::contains)
+                            .distinct()
+                            .collect(Collectors.toList());
+
+                    results.add(new SearchResult(title, "", rank, presentTerms, filePath));
+                }
             }
         }
         return results;

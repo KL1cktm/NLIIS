@@ -27,7 +27,8 @@
       <h3>Результаты по запросу: "<span th:text="${query}"></span>"</h3>
       <ol class="results-list">
         <li th:each="result : ${results}">
-          <div class="result-item">
+
+          <div class="result-item" th:if="${result.filePath != 'AI_RESPONSE'}">
             <h4 class="result-title" th:text="${result.title}">Заголовок документа</h4>
             <div class="meta">
               <div class="file-path">
@@ -40,6 +41,12 @@
               </div>
             </div>
           </div>
+
+          <div class="result-item ai-response" th:if="${result.filePath == 'AI_RESPONSE'}">
+            <h4 class="result-title" th:text="${result.title}"></h4>
+            <div class="snippet" th:utext="${result.snippet}"></div>
+          </div>
+
         </li>
       </ol>
     </div>
