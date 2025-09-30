@@ -1,10 +1,12 @@
 package by.yurhilevich;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
 
@@ -13,7 +15,7 @@ public class WebController {
 
     private final SearchService searchService;
 
-    public WebController(SearchService searchService) {
+    public WebController(SearchService searchService) { // <-- ОБНОВЛЯЕМ КОНСТРУКТОР
         this.searchService = searchService;
     }
 

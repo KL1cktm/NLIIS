@@ -38,7 +38,6 @@ public class TextProcessor {
                 result.append(word).append(" ");
             }
         }
-        // Лемматизация здесь не добавлена, т.к. RussianAnalyzer в Lucene делает это сам
         return result.toString().trim();
     }
 }

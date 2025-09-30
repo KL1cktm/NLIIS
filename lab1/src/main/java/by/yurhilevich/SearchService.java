@@ -50,7 +50,6 @@ public class SearchService {
                 Document doc = searcher.doc(hit.doc);
                 String title = doc.get("title");
                 String fullText = doc.get("contents");
-                String snippet = fullText.length() > 300 ? fullText.substring(0, 300) + "..." : fullText;
                 double rank = hit.score;
                 String filePath = doc.get("path");
 
@@ -60,7 +59,7 @@ public class SearchService {
                         .distinct()
                         .collect(Collectors.toList());
 
-                results.add(new SearchResult(title, snippet, rank, presentTerms, filePath));
+                results.add(new SearchResult(title, "", rank, presentTerms, filePath));
             }
         }
         return results;

@@ -157,3 +157,31 @@ header .muted { font-size: 14px; color: #888; margin-top: 4px; }
 .close-btn:hover, .close-btn:focus {
     color: black;
 }
+
+.search-container {
+    position: relative; /* Необходимо для позиционирования выпадающего списка */
+}
+
+.suggestions-box {
+    display: none; /* По умолчанию скрыт */
+    position: absolute;
+    top: 100%; /* Появляется прямо под полем ввода */
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    z-index: 999;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
