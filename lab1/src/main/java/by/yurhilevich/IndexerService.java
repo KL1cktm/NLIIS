@@ -1,6 +1,5 @@
 package by.yurhilevich;
 
-import jakarta.annotation.PostConstruct;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.ru.RussianAnalyzer;
 import org.apache.lucene.document.Document;
@@ -14,45 +13,56 @@ import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.stream.Stream;
 
 @Service
 public class IndexerService {
 
-    @Value("${app.index.dir}")
-    private String indexDir;
+    private final String indexDir;
+    private final ConfigService configService;
 
-    @Value("${app.docs.dir}")
-    private String docsDir;
+    public IndexerService(@Value("${app.index.dir}") String indexDir, ConfigService configService) {
+        this.indexDir = indexDir;
+        this.configService = configService;
+        rebuildIndex();
+    }
 
-    @PostConstruct
-    public void startIndexing() {
+    /**
+     * --- ИСПРАВЛЕНИЕ: Это теперь главный публичный метод для индексации. ---
+     * Он полностью перестраивает индекс на основе текущих настроек.
+     * Его вызывает конструктор при старте и планировщик для обновлений.
+     */
+    public void rebuildIndex() {
         try {
-            System.out.println("--- Начало индексации ---");
+            System.out.println("--- Начало полной переиндексации ---");
+            List<String> directories = configService.getSearchDirectories();
             Directory dir = FSDirectory.open(Paths.get(indexDir));
             Analyzer analyzer = new RussianAnalyzer();
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE); // Всегда полностью пересоздаем индекс
 
             try (IndexWriter writer = new IndexWriter(dir, iwc)) {
-                indexDocs(writer, Paths.get(docsDir));
+                for (String docPath : directories) {
+                    indexDocs(writer, Paths.get(docPath.trim()));
+                }
             }
-
-            System.out.println("--- Индексация завершена ---");
-
+            updateLastIndexTime();
+            System.out.println("--- Переиндексация завершена ---");
         } catch (IOException e) {
-            System.err.println("Ошибка при индексации: " + e.getMessage());
+            System.err.println("Критическая ошибка при переиндексации: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private void indexDocs(final IndexWriter writer, Path path) throws IOException {
-        if (!Files.exists(path)) {
-            System.err.println("Директория для индексации не найдена: " + path);
+        if (!Files.exists(path) || !Files.isDirectory(path)) {
+            System.err.println("Директория для индексации не найдена или не является папкой: " + path);
             return;
         }
 
@@ -79,5 +89,29 @@ public class IndexerService {
         doc.add(new TextField("contents", TextProcessor.preprocess(content), Field.Store.YES));
 
         writer.addDocument(doc);
+    }
+
+    /**
+     * --- НОВЫЙ МЕТОД: Получает время последней успешной индексации. ---
+     * Нужен для планировщика, чтобы сравнивать с датами изменения файлов.
+     */
+    public long getLastIndexTime() {
+        File timestampFile = new File(indexDir, "index.timestamp");
+        if (timestampFile.exists()) {
+            return timestampFile.lastModified();
+        }
+        return 0L;
+    }
+
+    /**
+     * --- НОВЫЙ МЕТОД: Создает или обновляет файл-метку времени. ---
+     * Вызывается после каждой успешной переиндексации.
+     */
+    private void updateLastIndexTime() throws IOException {
+        File timestampFile = new File(indexDir, "index.timestamp");
+        if (!timestampFile.exists()) {
+            Files.createFile(timestampFile.toPath());
+        }
+        timestampFile.setLastModified(System.currentTimeMillis());
     }
 }
