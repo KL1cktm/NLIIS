@@ -38,7 +38,6 @@ public class WebController {
         configService.saveSettings(directories, interval);
         redirectAttributes.addFlashAttribute("message", "Настройки успешно сохранены!");
 
-        // Запускаем немедленную переиндексацию с новыми настройками
         new Thread(() -> indexerService.rebuildIndex()).start();
 
         return "redirect:/config";

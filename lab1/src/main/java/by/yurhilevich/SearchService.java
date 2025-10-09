@@ -50,10 +50,10 @@ public class SearchService {
 
             if (docs.scoreDocs.length == 0) {
                 System.out.println("Локальный поиск не дал результатов. Обращаемся к локальной модели Ollama...");
-                String aiResponse = ollamaService.ask(queryString); // <-- ВЫЗЫВАЕМ НОВЫЙ СЕРВИС
+                String aiResponse = ollamaService.ask(queryString);
 
                 SearchResult aiResult = new SearchResult(
-                        "Ответ от локальной нейросети", // <-- Меняем заголовок
+                        "Ответ от локальной нейросети",
                         aiResponse,
                         0.0,
                         List.of(),

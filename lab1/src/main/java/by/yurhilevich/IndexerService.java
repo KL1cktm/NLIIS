@@ -33,11 +33,6 @@ public class IndexerService {
         rebuildIndex();
     }
 
-    /**
-     * --- ИСПРАВЛЕНИЕ: Это теперь главный публичный метод для индексации. ---
-     * Он полностью перестраивает индекс на основе текущих настроек.
-     * Его вызывает конструктор при старте и планировщик для обновлений.
-     */
     public void rebuildIndex() {
         try {
             System.out.println("--- Начало полной переиндексации ---");
@@ -45,7 +40,7 @@ public class IndexerService {
             Directory dir = FSDirectory.open(Paths.get(indexDir));
             Analyzer analyzer = new RussianAnalyzer();
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE); // Всегда полностью пересоздаем индекс
+            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
             try (IndexWriter writer = new IndexWriter(dir, iwc)) {
                 for (String docPath : directories) {
@@ -91,10 +86,6 @@ public class IndexerService {
         writer.addDocument(doc);
     }
 
-    /**
-     * --- НОВЫЙ МЕТОД: Получает время последней успешной индексации. ---
-     * Нужен для планировщика, чтобы сравнивать с датами изменения файлов.
-     */
     public long getLastIndexTime() {
         File timestampFile = new File(indexDir, "index.timestamp");
         if (timestampFile.exists()) {
@@ -103,10 +94,6 @@ public class IndexerService {
         return 0L;
     }
 
-    /**
-     * --- НОВЫЙ МЕТОД: Создает или обновляет файл-метку времени. ---
-     * Вызывается после каждой успешной переиндексации.
-     */
     private void updateLastIndexTime() throws IOException {
         File timestampFile = new File(indexDir, "index.timestamp");
         if (!timestampFile.exists()) {

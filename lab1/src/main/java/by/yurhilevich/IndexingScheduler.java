@@ -25,10 +25,6 @@ public class IndexingScheduler implements SchedulingConfigurer { // <-- ИЗМЕ
         this.configService = configService;
     }
 
-    /**
-     * Этот метод теперь будет вызываться Spring для настройки нашей задачи.
-     * Он позволяет нам задать динамический "триггер" для запуска.
-     */
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.addTriggerTask(
@@ -51,9 +47,6 @@ public class IndexingScheduler implements SchedulingConfigurer { // <-- ИЗМЕ
         );
     }
 
-    /**
-     * Этот метод остался прежним, но с него убрана аннотация @Scheduled
-     */
     public void checkForUpdatesAndReindex() {
         System.out.println("Планировщик: Проверка на наличие изменений в файлах...");
         List<String> directories = configService.getSearchDirectories();
