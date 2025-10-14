@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Настройки</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-content">
+      <h1><a href="/">Локальная поисковая система</a></h1>
+    </div>
+    <nav>
+      <a href="/" class="btn">Поиск</a>
+      <button id="helpBtn" class="btn btn-help">Помощь</button>
+    </nav>
+  </header>
+  <main>
+    <h2>Настройки индексации</h2>
+
+    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+
+    <form th:action="@{/config}" method="post" class="config-form">
+      <div class="form-group">
+        <label for="directories">Директории для поиска (каждая с новой строки):</label>
+        <textarea id="directories" name="directories" rows="5" th:text="${directories}"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="interval">Интервал переиндексации (в минутах):</label>
+        <input type="number" id="interval" name="interval" min="1" th:value="${interval}">
+      </div>
+      <button type="submit" class="btn btn-primary">Сохранить и переиндексировать</button>
+    </form>
+  </main>
+</div>
+</body>
+</html>
