@@ -1,18 +1,18 @@
 package by.yurhilevich;
 
-import org.apache.tika.language.detect.LanguageDetector;
-import org.apache.tika.language.detect.LanguageResult;
-import org.apache.tika.langdetect.optimaize.OptimaizeLangDetector;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 public class NeuralNetworkService implements LanguageService {
 
-    private final LanguageDetector detector;
+    // Внедряем URL из application.properties
+    @Value("${ollama.api.url}")
+    private String ollamaApiUrl;
 
-    public NeuralNetworkService(){
-        this.detector = new OptimaizeLangDetector().loadModels();
-    }
+    // RestTemplate - стандартный инструмент Spring для выполнения HTTP-запросов
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
     public Language recognize(String text) {
@@ -20,21 +20,42 @@ public class NeuralNetworkService implements LanguageService {
             return Language.UNKNOWN;
         }
 
-        LanguageResult result = detector.detect(text);
-        String langCode = result.getLanguage();
+        String prompt = buildPrompt(text);
 
-        switch (langCode) {
-            case "ru":
-                return Language.RUSSIAN;
-            case "it":
-                return Language.ITALIAN;
-            default:
-                return Language.UNKNOWN;
+        OllamaRequest request = new OllamaRequest("llama3:8b", prompt);
+
+        try {
+            OllamaResponse response = restTemplate.postForObject(ollamaApiUrl, request, OllamaResponse.class);
+
+            if (response != null && response.getResponse() != null) {
+                String langCode = response.getResponse().trim().toLowerCase();
+                switch (langCode) {
+                    case "ru":
+                        return Language.RUSSIAN;
+                    case "it":
+                        return Language.ITALIAN;
+                    default:
+                        return Language.UNKNOWN;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка при обращении к Ollama: " + e.getMessage());
+            return Language.UNKNOWN;
         }
+
+        return Language.UNKNOWN;
+    }
+
+    private String buildPrompt(String text) {
+        String truncatedText = text.length() > 1000 ? text.substring(0, 1000) : text;
+
+        return "You are an expert language identifier. Analyze the following text and determine its language. " +
+                "Your response MUST be ONLY the two-letter ISO 639-1 code of the language (e.g., 'en', 'fr', 'ru', 'it'). " +
+                "Do not add any explanation or punctuation. The text is: \n\n\"" + truncatedText + "\"";
     }
 
     @Override
     public String getMethodName() {
-        return "Готовая модель (Apache Tika)";
+        return "Модель Ollama (llama3)";
     }
 }
