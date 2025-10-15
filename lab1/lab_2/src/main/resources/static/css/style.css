@@ -1,0 +1,82 @@
+/* Общие стили для страницы */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 2em;
+    background-color: #f8f9fa;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Контейнер для основного контента */
+.container {
+    max-width: 600px;
+    width: 100%;
+    margin: auto;
+    padding: 2em;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* Заголовки */
+h1 {
+    color: #212529;
+    font-size: 1.75em;
+    margin-bottom: 1em;
+}
+
+/* Стили для кнопки */
+button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Стили для таблицы с результатами */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5em;
+}
+
+th, td {
+    border: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+/* Ссылка "Назад" */
+a {
+    color: #007bff;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 1em;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Сообщение об ошибке */
+.error {
+    color: #dc3545;
+    margin-top: 1em;
+}
