@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Распознавание языка</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Анализ языка HTML-документа</h1>
+    <p>Выберите HTML-файл для определения языка (Русский/Итальянский).</p>
+    <form method="post" action="/recognize" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".html,.htm" required>
+        <br><br>
+        <button type="submit">Анализировать</button>
+    </form>
+    <p class="error" th:if="${error}" th:text="${error}"></p>
+</div>
+
+<script th:src="@{/js/main.js}"></script>
+</body>
+</html>
