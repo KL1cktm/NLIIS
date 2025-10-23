@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Система реферирования (Вариант 19)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Система автоматического реферирования</h1>
+    <div class="controls">
+        <button id="loadCorpusBtn">1. Загрузить корпус</button>
+        <span id="statusLabel">Статус: Ожидание корпуса...</span>
+    </div>
+
+    <form id="uploadForm">
+        <div class="controls">
+            <input type="file" id="fileInput" accept=".txt" required>
+            <div class="lang-select">
+                <label><input type="radio" name="lang" value="ru" checked> Русский</label>
+                <label><input type="radio" name="lang" value="en"> Английский</label>
+            </div>
+            <button type="submit" id="summarizeBtn" disabled>2. Реферировать</button>
+        </div>
+    </form>
+
+    <div class="help">
+        <p>Вариант 19 (RU/EN, Медицина/Искусство). Метод: Sentence Extraction (TF-IDF, Pos) + Llama (Transform & Keywords).
+            <br><strong>Для сохранения/печати:</strong> используйте Ctrl+S или Ctrl+P вашего браузера.
+        </p>
+    </div>
+</header>
+
+<main id="results" class="hidden">
+    <h3 id="sourceLink">Исходный файл:</h3>
+
+    <div class="result-box">
+        <h2>Классический реферат (Sentence Extraction + Llama)</h2>
+        <textarea id="classicReferatArea" readonly></textarea>
+    </div>
+
+    <div class="result-box">
+        <h2>Реферат в виде ключевых слов (Llama)</h2>
+        <textarea id="keywordReferatArea" readonly></textarea>
+    </div>
+</main>
+
+<script>
+    const loadCorpusBtn = document.getElementById('loadCorpusBtn');
+    const summarizeBtn = document.getElementById('summarizeBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const statusLabel = document.getElementById('statusLabel');
+    const results = document.getElementById('results');
+    const sourceLink = document.getElementById('sourceLink');
+    const classicArea = document.getElementById('classicReferatArea');
+    const keywordArea = document.getElementById('keywordReferatArea');
+
+    // --- 1. Загрузка корпуса ---
+    loadCorpusBtn.addEventListener('click', async () => {
+        statusLabel.textContent = 'Обработка корпуса... (Может занять время)';
+        loadCorpusBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/process-corpus', { method: 'POST' });
+            const data = await response.json();
+
+            if (response.ok) {
+                statusLabel.textContent = `Статус: ${data.message}`;
+                summarizeBtn.disabled = false; // Разблокируем кнопку реферирования
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            statusLabel.textContent = `Ошибка корпуса: ${error.message}`;
+            loadCorpusBtn.disabled = false;
+        }
+    });
+
+    // --- 2. Реферирование файла ---
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Не даем форме перезагрузить страницу
+
+        const file = fileInput.files[0];
+        const lang = document.querySelector('input[name="lang"]:checked').value;
+
+        if (!file) {
+            alert('Пожалуйста, выберите файл.');
+            return;
+        }
+
+        // Показываем спиннер/загрузку
+        statusLabel.textContent = 'Идет реферирование... (Llama думает...)';
+        summarizeBtn.disabled = true;
+        classicArea.value = 'Загрузка...';
+        keywordArea.value = 'Загрузка...';
+        results.classList.remove('hidden');
+
+        // Создаем FormData для отправки файла
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('lang', lang);
+
+        try {
+            const response = await fetch('/api/summarize', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                sourceLink.textContent = `Исходный файл: ${data.sourceLink}`;
+                classicArea.value = data.classicReferat;
+                keywordArea.value = data.keywordReferat;
+                statusLabel.textContent = 'Готово!';
+            } else {
+                throw new Error(data.error || 'Неизвестная ошибка сервера');
+            }
+        } catch (error) {
+            console.error(error);
+            statusLabel.textContent = 'Ошибка!';
+            classicArea.value = `Ошибка реферирования: ${error.message}. \nУбедитесь, что Llama запущена (ollama run llama3).`;
+            keywordArea.value = `Ошибка.`;
+        } finally {
+            summarizeBtn.disabled = false; // Возвращаем кнопку в рабочее состояние
+        }
+    });
+</script>
+</body>
+</html>
