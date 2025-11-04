@@ -95,6 +95,7 @@ public class Summarizer {
                 .map(Sentence::getOriginalText)
                 .collect(Collectors.joining(" "));
 
-        return llamaService.transformReferat(draftReferat, lang);
+        return draftReferat;
+//        return llamaService.transformReferat(draftReferat, lang);
     }
 }

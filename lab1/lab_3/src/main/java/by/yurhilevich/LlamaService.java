@@ -47,10 +47,8 @@ public class LlamaService {
     public String getKeywords(String fullText, String lang) throws Exception {
         String prompt;
         if ("ru".equals(lang)) {
-            prompt = "Ты — редактор-референт. Следующий текст — это набор важных предложений, вырванных из статьи. " +
-                    "Твоя задача — улучшить его связность и читаемость. Удали вводные конструкции, замени местоимения (анафоры) на существительные, к которым они относятся, и внеси минимальные правки для гладкости текста. " +
-                    "Не добавляй никакой новой информации и не меняй смысл. Ответь только исправленным текстом. " +
-                    "ВАЖНО: Отвечай только на русском языке. Текст: \n" + fullText;
+            prompt = "Ты — ассистент по NLP. Извлеки 20-30 самых важных ключевых слов и коротких словосочетаний (N-грамм) из следующего текста. " +
+                    "Не пиши ничего, кроме списка, разделенного запятыми. Текст: \n" + fullText;
         } else {
             prompt = "You are an NLP assistant. Extract the 20-30 most important keywords and short keyphrases (N-grams) from the following text. " +
                     "Respond only with a comma-separated list. Text: \n" + fullText;
@@ -58,19 +56,5 @@ public class LlamaService {
 
         String commaSeparatedList = generate(prompt);
         return commaSeparatedList.replace(", ", "\n");
-    }
-
-    public String transformReferat(String extractedSentences, String lang) throws Exception {
-        String prompt;
-        if ("ru".equals(lang)) {
-            prompt = "Ты — редактор-референт. Следующий текст — это набор важных предложений, вырванных из статьи. " +
-                    "Твоя задача — улучшить его связность и читаемость. Удали вводные конструкции, замени местоимения (анафоры) на существительные, к которым они относятся, и внеси минимальные правки для гладкости текста. " +
-                    "Не добавляй никакой новой информации и не меняй смысл. Ответь только исправленным текстом. Текст: \n" + extractedSentences;
-        } else {
-            prompt = "You are an editor. The following text is a set of important sentences extracted from an article. " +
-                    "Your task is to improve its coherence and readability. Remove filler words, resolve anaphora (replace pronouns with the nouns they refer to), and make minimal edits for flow. " +
-                    "Do not add any new information or change the meaning. Respond only with the edited text. Text: \n" + extractedSentences;
-        }
-        return generate(prompt);
     }
 }
