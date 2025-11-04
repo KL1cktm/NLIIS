@@ -1,0 +1,232 @@
+/* Простой сброс */
+body, h2, h3, p, ul, table {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #333;
+}
+
+body {
+    background-color: #f4f7f6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+header {
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+header h2 {
+    color: #005a9c;
+}
+
+/* Форма */
+.translation-form textarea {
+    width: 100%;
+    height: 150px;
+    box-sizing: border-box; /* Важно для padding + width 100% */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.translation-form button {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.translation-form button:hover {
+    background-color: #0056b3;
+}
+
+/* Результаты */
+.results {
+    margin-top: 30px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr; /* 1 часть слева, 1.5 справа */
+    gap: 20px;
+}
+
+.result-box {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    min-width: 0;
+}
+
+.output-text {
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    min-height: 100px;
+    white-space: pre-wrap; /* Сохраняет переносы строк */
+}
+
+/* Табы */
+.tabs {
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+.tab-link {
+    background: none;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 1rem;
+    border-bottom: 3px solid transparent;
+}
+.tab-link:hover {
+    background: #f0f0f0;
+}
+.tab-link.active {
+    border-bottom: 3px solid #007bff;
+    font-weight: bold;
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+
+/* Таблица */
+.table-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background-color: #f9f9f9;
+    position: sticky; /* "Прилипающий" заголовок */
+    top: 0;
+}
+.editable {
+    cursor: pointer;
+    color: #0056b3;
+}
+.editable:hover {
+    text-decoration: underline;
+}
+
+.parse-tree-box {
+    background: #2b2b2b;
+    color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+    font-family: "Courier New", Courier, monospace;
+    white-space: pre;      /* 1. Говорит "не переноси строки" */
+    overflow-x: auto;    /* 2. Говорит "добавь горизонт. скролл, если не влезло" */
+    max-width: 100%;     /* 3. Говорит "не вылезай за родителя" */
+    min-height: 100px;
+    box-sizing: border-box; /* 4. Чтобы padding не ломал max-width */
+}
+
+/* в src/main/resources/static/style.css */
+
+/* --- Стили для выбора предложения (Вкладка 2) --- */
+.sentence-list {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    padding: 10px;
+    margin-bottom: 15px;
+    background: #fdfdfd;
+}
+
+.clickable-sentence {
+    padding: 5px;
+    margin-bottom: 5px !important; /* перебить 'p' */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clickable-sentence:hover {
+    background-color: #f0f0f0;
+}
+
+.clickable-sentence.selected {
+    background-color: #e0f0ff;
+    font-weight: bold;
+    color: #005a9c;
+}
+
+/* Обновление для .parse-tree-box */
+.parse-tree-box {
+    /* ... (старые стили: background, color, padding, и т.д.) ... */
+    min-height: 100px; /* Минимальная высота */
+}
+
+/* --- Стили для лоадера --- */
+#loader-overlay {
+    position: fixed;     /* Перекрывает всё */
+    display: none;       /* <-- ВОТ ОНО! По умолчанию спрятан */
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(255, 255, 255, 0.85); /* Полупрозрачный фон */
+    z-index: 9999;       /* Поверх всего */
+    text-align: center;
+}
+
+#loader-overlay p {
+    position: relative;
+    top: 50%;
+    font-size: 1.2rem;
+    color: #333;
+    font-weight: bold;
+    margin-top: 20px; /* Отступ от спиннера */
+}
+
+/* Сам "крутящийся" спиннер */
+.spinner {
+    position: relative;
+    top: 50%;
+    margin: -60px auto 0 auto; /* Центрирование */
+    width: 60px;
+    height: 60px;
+    border: 8px solid #f3f3f3; /* Серый круг */
+    border-top: 8px solid #007bff; /* Синий "бегунок" */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.result-box ul {
+    /* Стандартный отступ 40px, мы его уменьшаем, чтобы он влез */
+    padding-left: 25px;
+}
