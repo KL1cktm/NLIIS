@@ -13,8 +13,7 @@ public class TranslationResponse {
     private int totalWords;
     private int uniqueWords;
     private List<WordStats> frequencyList;
-    private List<String> originalSentences; // <-- ДОБАВЛЯЕМ
-    // ------------------------
+    private List<String> originalSentences;
 
     @Data
     @AllArgsConstructor

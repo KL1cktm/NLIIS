@@ -7,6 +7,5 @@ import java.util.Optional;
 @Repository
 public interface DictionaryRepository extends JpaRepository<DictionaryEntry, Long> {
 
-    // Поиск слова в нашем словаре
     Optional<DictionaryEntry> findByEnglishWord(String englishWord);
 }

@@ -19,8 +19,8 @@ public class DictionaryEntry {
 
     private String russianTranslation;
 
-    private String posTag; // Тег (напр. "NN") [cite: 26]
-    private String posTagDescription; // Расшифровка [cite: 26]
+    private String posTag; // Тег (напр. "NN")
+    private String posTagDescription; // Расшифровка
 
     public DictionaryEntry(String englishWord, String russianTranslation, String posTag, String posTagDescription) {
         this.englishWord = englishWord;

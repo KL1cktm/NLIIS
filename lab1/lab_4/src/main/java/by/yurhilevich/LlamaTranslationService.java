@@ -17,7 +17,6 @@ public class LlamaTranslationService {
 
     public String translate(String textToTranslate) {
 
-        // Промпт, заточенный под ваш Вариант 8 [cite: 37]
         String prompt = String.format(
                 "Translate the following English text to Russian. " +
                         "The text domain is 'scientific articles on medicine' or 'critique of visual art objects'. " +
@@ -26,7 +25,6 @@ public class LlamaTranslationService {
                 textToTranslate
         );
 
-        // Структура JSON-запроса (для Ollama). Адаптируйте, если у вас другой API.
         Map<String, Object> requestBody = Map.of(
                 "model", "llama3:8b",
                 "prompt", prompt,
@@ -40,9 +38,7 @@ public class LlamaTranslationService {
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(llamaApiUrl, entity, Map.class);
 
-            // Парсим JSON-ответ (для Ollama)
             if (response.getBody() != null && response.getBody().containsKey("response")) {
-                // Убираем лишние кавычки, которые Llama 3 любит добавлять
                 return ((String) response.getBody().get("response")).trim().replaceAll("^\"|\"$", "");
             }
             return "ОШИБКА: Не удалось разобрать ответ от Llama 3.";

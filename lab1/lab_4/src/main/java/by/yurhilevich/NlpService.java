@@ -29,7 +29,6 @@ public class NlpService {
 
     @PostConstruct
     public void init() {
-        // Загружаем модели при старте приложения
         try (InputStream sentModelIn = getClass().getResourceAsStream("/models/en-sent.bin"); // <-- ЗАГРУЗКА НОВОЙ МОДЕЛИ
              InputStream tokenModelIn = getClass().getResourceAsStream("/models/en-token.bin");
              InputStream posModelIn = getClass().getResourceAsStream("/models/en-pos-maxent.bin");
@@ -53,11 +52,9 @@ public class NlpService {
         }
     }
 
-    // --- НОВЫЙ МЕТОД ---
     public String[] splitSentences(String text) {
         return sentenceDetector.sentDetect(text);
     }
-    // --------------------
 
     public String[] tokenize(String text) {
         return tokenizer.tokenize(text);
@@ -68,7 +65,6 @@ public class NlpService {
     }
 
     public String getParseTree(String sentence) {
-        // Используем StringBuffer, как и договаривались
         StringBuffer sb = new StringBuffer();
         Parse[] topParses = ParserTool.parseLine(sentence, parser, 1);
 
@@ -84,7 +80,6 @@ public class NlpService {
     }
 
     private void fillPosTagMap() {
-        // ... (код для fillPosTagMap() остается без изменений) ...
         posTagMap.put("CC", "Coordinating conjunction");
         posTagMap.put("CD", "Cardinal number");
         posTagMap.put("DT", "Determiner");

@@ -38,24 +38,18 @@ public class TranslationController {
     public String handleTranslate(@ModelAttribute TranslationRequest request, Model model) {
         String inputText = request.getText();
 
-        // 1. Перевод
         String translatedText = llamaService.translate(inputText);
 
-        // 2. NLP-Анализ
         String[] tokens = nlpService.tokenize(inputText);
         String[] posTags = nlpService.getPosTags(tokens);
 
-        // --- НОВЫЙ БЛОК: Разбивка на предложения ---
         String[] sentences = nlpService.splitSentences(inputText);
-        // -----------------------------------------
 
-        // 3. Считаем частоты (код без изменений)
         Map<String, Long> wordFrequencies = Arrays.stream(tokens)
                 .map(String::toLowerCase)
                 .filter(word -> word.matches("[a-zA-Z]+"))
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
-        // 4. Формируем "Вкладку 1" (код без изменений)
         Map<String, String> tokenPosMap = new HashMap<>();
         for (int i = 0; i< tokens.length; i++) {
             if (!tokens[i].matches("[a-zA-Z]+")) continue;
@@ -77,37 +71,26 @@ public class TranslationController {
         }
         frequencyList.sort((a, b) -> Long.compare(b.getFrequency(), a.getFrequency()));
 
-        // 5. Дерево разбора (Вкладка 2)
-        // --- УДАЛЯЕМ СТАРЫЙ КОД ---
-        // String firstSentence = inputText.split("[.!?]")[0] + ".";
-        // String parseTree = nlpService.getParseTree(firstSentence);
-        // -------------------------
-
-        // 6. Собираем DTO для ответа
         TranslationResponse response = new TranslationResponse();
         response.setTranslatedText(translatedText);
         response.setTotalWords(tokens.length);
         response.setUniqueWords(wordFrequencies.size());
         response.setFrequencyList(frequencyList);
-        response.setOriginalSentences(Arrays.asList(sentences)); // <-- ПЕРЕДАЕМ СПИСОК ПРЕДЛОЖЕНИЙ
+        response.setOriginalSentences(Arrays.asList(sentences));
 
-        // 7. Сохраняем в файл (код без изменений)
         saveResultsToFile(request.getText(), response);
 
-        // 8. Передаем все на страницу
         model.addAttribute("request", request);
         model.addAttribute("response", response);
         return "index";
     }
 
-    // --- НОВЫЙ API-ЭНДПОИНТ ДЛЯ AJAX ---
     @PostMapping("/api/get-parse-tree")
     @ResponseBody
     public Map<String, String> getParseTree(@RequestParam String sentence) {
         String tree = nlpService.getParseTree(sentence);
         return Map.of("tree", tree);
     }
-    // --------------------------------------
 
     @PostMapping("/api/update-dictionary")
     @ResponseBody
@@ -135,8 +118,6 @@ public class TranslationController {
     }
 
     private void saveResultsToFile(String sourceText, TranslationResponse response) {
-        // ... (код saveResultsToFile() остается без изменений) ...
-        // ... (он не парсит дерево, так что все ок) ...
         String filename = "src/main/resources/static/translation_results.txt";
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename, StandardCharsets.UTF_8))) {
