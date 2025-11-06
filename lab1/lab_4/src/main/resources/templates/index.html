@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <title>ЛР4 - Машинный перевод (Вариант 8)</title>
     <link rel="stylesheet" href="/style.css">
+    <style>
+        /* Дополнительный стиль, чтобы селектор языка и textarea выглядели аккуратно */
+        .lang-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Расстояние между селектором и полем ввода */
+            margin-bottom: 10px;
+        }
+        .lang-selector select {
+            padding: 8px;
+            font-size: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            flex-grow: 0; /* Не растягивать */
+        }
+        .translation-form textarea {
+            flex-grow: 1; /* Растягивать поле ввода */
+            /* Убедитесь, что высота задана, например, в style.css */
+        }
+    </style>
 </head>
 <body>
 
@@ -15,13 +35,21 @@
 <div class="container">
     <header>
         <h2>Лабораторная работа №4: Автоматический машинный перевод</h2>
-        <p>Вариант 8: Англо-Русский (Медицина, Искусство)</p>
+        <p>Вариант 8: Англо-Русский / Русско-Английский (Медицина, Искусство)</p>
     </header>
 
     <form class="translation-form" th:action="@{/translate}" th:object="${request}" method="post"
           onsubmit="document.getElementById('loader-overlay').style.display = 'block';">
-        <h3>1. Входной текст на английском</h3>
-        <textarea name="text" th:field="*{text}" placeholder="Paste your English text here... (e.g., 'The patient exhibited symptoms of tachycardia. The painting's chiaroscuro is masterful.')"></textarea>
+
+        <h3>1. Входной текст</h3>
+
+        <div class="lang-selector">
+            <select id="direction-selector" name="direction" th:field="*{direction}">
+                <option value="en-ru">Английский -> Русский</option>
+                <option value="ru-en">Русский -> Английский</option>
+            </select>
+        </div>
+        <textarea name="text" th:field="*{text}" placeholder="Введите текст..."></textarea>
         <button type="submit">Перевести</button>
     </form>
 
@@ -29,7 +57,7 @@
 
         <div class="grid">
             <div class="result-box">
-                <h3>2. Результат перевода (Русский)</h3>
+                <h3>2. Результат перевода</h3>
                 <div class="output-text" th:text="${response.translatedText}">
                     Здесь будет перевод...
                 </div>
@@ -67,6 +95,7 @@
                                 <td class="editable"
                                     th:text="${word.translation}"
                                     th:data-word="${word.word}"
+                                    th:data-direction="${request.direction}"
                                     onclick="editTranslation(this)">
                                     [перевод]
                                 </td>
@@ -84,6 +113,7 @@
                         <p th:each="sentence, iter : ${response.originalSentences}"
                            th:text="${sentence}"
                            th:data-sentence="${sentence}"
+                           th:data-lang="${request.direction.split('-')[0]}"
                            th:id="'sentence-' + ${iter.index}"
                            class="clickable-sentence"
                            onclick="fetchParseTree(this)">
@@ -103,39 +133,33 @@
 
 <script>
     /**
-     * Логика переключения табов
+     * Логика переключения табов (без изменений)
      */
     function openTab(evt, tabName) {
-        // Прячем весь контент
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        // Снимаем активность со всех кнопок
         document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
-        // Показываем нужный контент
         document.getElementById(tabName).classList.add('active');
-        // Активируем нужную кнопку
         evt.currentTarget.classList.add('active');
     }
 
     /**
      * Логика утилиты (AJAX-запрос) для редактирования словаря
+     * ОБНОВЛЕНО: теперь отправляет 'direction'
      */
     function editTranslation(cellElement) {
         const currentTranslation = cellElement.innerText;
         const word = cellElement.dataset.word;
+        const direction = cellElement.dataset.direction; // <-- НОВОЕ: получаем направление
 
-        // 1. Спрашиваем новый перевод
         const newTranslation = prompt(`Редактировать перевод для слова: "${word}"`,
             currentTranslation === '[нет в словаре]' ? '' : currentTranslation);
 
-        // 2. Если пользователь не нажал "Отмена" и что-то ввел
         if (newTranslation && newTranslation.trim() !== '' && newTranslation.trim() !== currentTranslation) {
-
-            // 3. Готовим данные для отправки
             const formData = new URLSearchParams();
             formData.append('word', word);
             formData.append('translation', newTranslation.trim());
+            formData.append('direction', direction); // <-- НОВОЕ: отправляем направление
 
-            // 4. Отправляем на бэкенд (/api/update-dictionary)
             fetch('/api/update-dictionary', {
                 method: 'POST',
                 body: formData
@@ -143,8 +167,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if(data.status === 'success') {
-                        // 5. Обновляем текст в ячейке
-                        cellElement.innerText = data.newTranslation;
+                        cellElement.innerText = newTranslation.trim(); // Обновляем ячейку новым текстом
                         cellElement.style.color = 'green';
                         cellElement.style.fontWeight = 'bold';
                     } else {
@@ -160,31 +183,28 @@
 
     /**
      * Логика AJAX-загрузки дерева разбора
+     * ОБНОВЛЕНО: теперь отправляет 'lang'
      */
     function fetchParseTree(selectedElement) {
         const sentence = selectedElement.dataset.sentence;
+        const lang = selectedElement.dataset.lang; // <-- НОВОЕ: получаем язык (en или ru)
         const treeContainer = document.getElementById('parse-tree-container');
 
-        // 1. Показываем лоадер в окне дерева
         treeContainer.innerText = 'Строим дерево...';
 
-        // 2. Снимаем выделение со всех
         document.querySelectorAll('.clickable-sentence').forEach(el => el.classList.remove('selected'));
-        // 3. Выделяем нажатое
         selectedElement.classList.add('selected');
 
-        // 4. Готовим и отправляем запрос
         const formData = new URLSearchParams();
         formData.append('sentence', sentence);
+        formData.append('lang', lang); // <-- НОВОЕ: отправляем язык
 
-        // 5. Отправляем на бэкенд (/api/get-parse-tree)
         fetch('/api/get-parse-tree', {
             method: 'POST',
             body: formData
         })
             .then(response => response.json())
             .then(data => {
-                // 6. Показываем результат
                 treeContainer.innerText = data.tree;
             })
             .catch(error => {
@@ -194,7 +214,7 @@
     }
 
     /**
-     * При загрузке страницы, убедимся, что первая вкладка активна
+     * При загрузке страницы, убедимся, что первая вкладка активна (без изменений)
      */
     document.addEventListener("DOMContentLoaded", function() {
         if(document.getElementById('tab1')) {

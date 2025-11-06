@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
 import java.util.Map;
 
 @Service
@@ -15,15 +14,26 @@ public class LlamaTranslationService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public String translate(String textToTranslate) {
+    public String translate(String textToTranslate, String direction) {
 
-        String prompt = String.format(
-                "Translate the following English text to Russian. " +
-                        "The text domain is 'scientific articles on medicine' or 'critique of visual art objects'. " +
-                        "Provide ONLY the Russian translation, without any explanations or preambles.\n\n" +
-                        "ENGLISH TEXT:\n\"%s\"\n\nRUSSIAN TRANSLATION:",
-                textToTranslate
-        );
+        String prompt;
+        if ("ru-en".equals(direction)) {
+            prompt = String.format(
+                    "Translate the following Russian text to English. " +
+                            "The text domain is 'scientific articles on medicine' or 'critique of visual art objects'. " +
+                            "Provide ONLY the English translation, without any explanations or preambles.\n\n" +
+                            "RUSSIAN TEXT:\n\"%s\"\n\nENGLISH TRANSLATION:",
+                    textToTranslate
+            );
+        } else {
+            prompt = String.format(
+                    "Translate the following English text to Russian. " +
+                            "The text domain is 'scientific articles on medicine' or 'critique of visual art objects'. " +
+                            "Provide ONLY the Russian translation, without any explanations or preambles.\n\n" +
+                            "ENGLISH TEXT:\n\"%s\"\n\nRUSSIAN TRANSLATION:",
+                    textToTranslate
+            );
+        }
 
         Map<String, Object> requestBody = Map.of(
                 "model", "llama3:8b",
@@ -44,7 +54,7 @@ public class LlamaTranslationService {
             return "ОШИБКА: Не удалось разобрать ответ от Llama 3.";
         } catch (Exception e) {
             e.printStackTrace();
-            return "ОШИБКА: Не удалось подключиться к Llama 3 API по адресу " + llamaApiUrl;
+            return "ОШИБКА: Не удалось подключиться к Llama 3 API.";
         }
     }
 }

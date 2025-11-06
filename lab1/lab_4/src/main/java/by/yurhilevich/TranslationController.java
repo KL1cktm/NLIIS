@@ -29,7 +29,9 @@ public class TranslationController {
 
     @GetMapping("/")
     public String index(Model model) {
-        model.addAttribute("request", new TranslationRequest());
+        TranslationRequest tr = new TranslationRequest();
+        tr.setDirection("en-ru");
+        model.addAttribute("request", tr);
         model.addAttribute("response", null);
         return "index";
     }
@@ -37,22 +39,23 @@ public class TranslationController {
     @PostMapping("/translate")
     public String handleTranslate(@ModelAttribute TranslationRequest request, Model model) {
         String inputText = request.getText();
+        String direction = request.getDirection();
+        String sourceLang = direction.split("-")[0];
 
-        String translatedText = llamaService.translate(inputText);
+        String translatedText = llamaService.translate(inputText, direction);
 
-        String[] tokens = nlpService.tokenize(inputText);
-        String[] posTags = nlpService.getPosTags(tokens);
-
-        String[] sentences = nlpService.splitSentences(inputText);
+        String[] tokens = nlpService.tokenize(inputText, sourceLang);
+        String[] posTags = nlpService.getPosTags(tokens, sourceLang);
+        String[] sentences = nlpService.splitSentences(inputText, sourceLang);
 
         Map<String, Long> wordFrequencies = Arrays.stream(tokens)
                 .map(String::toLowerCase)
-                .filter(word -> word.matches("[a-zA-Z]+"))
+                .filter(word -> word.matches("[\\p{L}]+"))
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
         Map<String, String> tokenPosMap = new HashMap<>();
-        for (int i = 0; i< tokens.length; i++) {
-            if (!tokens[i].matches("[a-zA-Z]+")) continue;
+        for (int i = 0; i < tokens.length; i++) {
+            if (!tokens[i].matches("[\\p{L}]+")) continue;
             tokenPosMap.putIfAbsent(tokens[i].toLowerCase(), posTags[i]);
         }
 
@@ -60,10 +63,18 @@ public class TranslationController {
         for (Map.Entry<String, Long> entry : wordFrequencies.entrySet()) {
             String word = entry.getKey();
             String posTag = tokenPosMap.getOrDefault(word, "??");
-            String posDescription = nlpService.getPosTagDescription(posTag);
-            String wordTranslation = dictionaryRepository.findByEnglishWord(word)
-                    .map(DictionaryEntry::getRussianTranslation)
-                    .orElse("[нет в словаре]");
+            String posDescription = nlpService.getPosTagDescription(posTag, sourceLang);
+
+            String wordTranslation;
+            if ("en".equals(sourceLang)) {
+                wordTranslation = dictionaryRepository.findByEnglishWord(word)
+                        .map(DictionaryEntry::getRussianTranslation)
+                        .orElse("[нет в словаре]");
+            } else {
+                wordTranslation = dictionaryRepository.findByRussianTranslation(word)
+                        .map(DictionaryEntry::getEnglishWord)
+                        .orElse("[нет в словаре]");
+            }
 
             frequencyList.add(new TranslationResponse.WordStats(
                     word, entry.getValue(), wordTranslation, posTag, posDescription
@@ -73,7 +84,10 @@ public class TranslationController {
 
         TranslationResponse response = new TranslationResponse();
         response.setTranslatedText(translatedText);
-        response.setTotalWords(tokens.length);
+
+        long actualWordCount = Arrays.stream(tokens).filter(word -> word.matches("[\\p{L}]+")).count();
+        response.setTotalWords((int) actualWordCount);
+
         response.setUniqueWords(wordFrequencies.size());
         response.setFrequencyList(frequencyList);
         response.setOriginalSentences(Arrays.asList(sentences));
@@ -87,34 +101,45 @@ public class TranslationController {
 
     @PostMapping("/api/get-parse-tree")
     @ResponseBody
-    public Map<String, String> getParseTree(@RequestParam String sentence) {
-        String tree = nlpService.getParseTree(sentence);
+    public Map<String, String> getParseTree(@RequestParam String sentence, @RequestParam String lang) {
+        String tree = nlpService.getParseTree(sentence, lang);
         return Map.of("tree", tree);
     }
 
     @PostMapping("/api/update-dictionary")
     @ResponseBody
     public Map<String, String> updateDictionaryEntry(@RequestParam String word,
-                                                     @RequestParam String translation) {
+                                                     @RequestParam String translation,
+                                                     @RequestParam String direction) {
 
         String cleanWord = word.toLowerCase().trim();
         String cleanTranslation = translation.trim();
+        DictionaryEntry entry;
 
-        DictionaryEntry entry = dictionaryRepository.findByEnglishWord(cleanWord)
-                .orElse(new DictionaryEntry());
-
-        entry.setEnglishWord(cleanWord);
-        entry.setRussianTranslation(cleanTranslation);
+        if ("en-ru".equals(direction)) {
+            entry = dictionaryRepository.findByEnglishWord(cleanWord)
+                    .orElse(new DictionaryEntry());
+            entry.setEnglishWord(cleanWord);
+            entry.setRussianTranslation(cleanTranslation);
+        } else {
+            entry = dictionaryRepository.findByRussianTranslation(cleanWord)
+                    .orElse(new DictionaryEntry());
+            entry.setRussianTranslation(cleanWord);
+            entry.setEnglishWord(cleanTranslation);
+        }
 
         if (entry.getPosTag() == null) {
-            String[] tags = nlpService.getPosTags(new String[]{cleanWord});
-            entry.setPosTag(tags[0]);
-            entry.setPosTagDescription(nlpService.getPosTagDescription(tags[0]));
+            String sourceLang = direction.split("-")[0];
+            String[] tags = nlpService.getPosTags(new String[]{cleanWord}, sourceLang);
+            if(tags.length > 0) {
+                entry.setPosTag(tags[0]);
+                entry.setPosTagDescription(nlpService.getPosTagDescription(tags[0], sourceLang));
+            }
         }
 
         dictionaryRepository.save(entry);
 
-        return Map.of("status", "success", "word", cleanWord, "newTranslation", cleanTranslation);
+        return Map.of("status", "success");
     }
 
     private void saveResultsToFile(String sourceText, TranslationResponse response) {

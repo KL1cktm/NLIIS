@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface DictionaryRepository extends JpaRepository<DictionaryEntry, Long> {
 
     Optional<DictionaryEntry> findByEnglishWord(String englishWord);
+    Optional<DictionaryEntry> findByRussianTranslation(String russianWord);
 }
