@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Система Синтеза и Распознавания</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h2 { text-align: center; }
+        textarea { width: 98%; height: 150px; margin-bottom: 10px; padding: 10px; font-size: 1em; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .control-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .control-group input { width: 100%; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; font-size: 1.1em; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; }
+        #audioPlayer { width: 100%; margin-top: 20px; }
+        #status { text-align: center; margin-top: 15px; font-style: italic; color: #333; }
+
+        .recognition-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        #listenBtn {
+            background-color: #28a745;
+        }
+        #listenBtn.listening {
+            background-color: #dc3545;
+            animation: pulse 1.5s infinite;
+        }
+        #recognition-status {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #555;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Лабораторная 8: Синтез речи (ElevenLabs)</h2>
+    <p><b>Предметная область:</b> Сочинения по литературе. <b>Язык:</b> Английский.</p>
+
+    <form id="ttsForm">
+        <div class="control-group">
+            <label for="text">Текст для синтеза (на английском):</label>
+            <textarea id="text" name="text">Hello, this is a sample text for a literature essay.</textarea>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="speakingRate">Темп (Speed: 0.7 - 1.2):</label>
+                <input type="range" id="speakingRate" min="0.7" max="1.2" value="1.0" step="0.05">
+                <span id="speakingRateValue">1.0</span>
+            </div>
+            <div class="control-group">
+                <label for="stability">Стабильность (Stability: 0.0 - 1.0):</label>
+                <input type="range" id="stability" min="0.0" max="1.0" value="0.5" step="0.05">
+                <span id="stabilityValue">0.5</span>
+            </div>
+            <div class="control-group">
+                <label for="similarityBoost">Сходство голоса (Similarity: 0.0 - 1.0):</label>
+                <input type="range" id="similarityBoost" min="0.0" max="1.0" value="0.75" step="0.05">
+                <span id="similarityBoostValue">0.75</span>
+            </div>
+        </div>
+
+        <button id="synthesizeBtn" type="submit">Синтезировать и Воспроизвести</button>
+    </form>
+    <div id="status"></div>
+    <audio id="audioPlayer" controls></audio>
+
+
+    <div class="recognition-section">
+        <h2>Лабораторная 9: Распознавание команд</h2>
+        <p>Нажмите "Слушать" и произнесите команду на английском.</p>
+        <p><b>Список операций:</b> "Speak" (Синтезировать), "Clear" (Очистить текст).</p>
+
+        <button id="listenBtn" type="button">Слушать 🎤</button>
+
+        <div id="recognition-status">...</div>
+    </div>
+
+</div>
+
+<script>
+    const rateSlider = document.getElementById('speakingRate');
+    const rateValue = document.getElementById('speakingRateValue');
+    rateSlider.oninput = () => rateValue.textContent = rateSlider.value;
+
+    const stabilitySlider = document.getElementById('stability');
+    const stabilityValue = document.getElementById('stabilityValue');
+    stabilitySlider.oninput = () => stabilityValue.textContent = stabilitySlider.value;
+
+    const similaritySlider = document.getElementById('similarityBoost');
+    const similarityValue = document.getElementById('similarityBoostValue');
+    similaritySlider.oninput = () => similarityValue.textContent = similaritySlider.value;
+
+    const ttsForm = document.getElementById('ttsForm');
+    const statusEl = document.getElementById('status');
+    const synthesizeBtn = document.getElementById('synthesizeBtn');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const textInput = document.getElementById('text');
+
+    ttsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        statusEl.textContent = 'Обработка синтеза...';
+        synthesizeBtn.disabled = true;
+        audioPlayer.src = '';
+
+        const requestData = {
+            text: textInput.value,
+            speakingRate: parseFloat(rateSlider.value),
+            stability: parseFloat(stabilitySlider.value),
+            similarityBoost: parseFloat(similaritySlider.value)
+        };
+
+        try {
+            const response = await fetch('/synthesize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Ошибка сервера: ${response.statusText}. Проверьте API-ключ.`);
+            }
+
+            const responseData = await response.json();
+            audioPlayer.src = `data:${responseData.mimeType};base64,${responseData.audioContentBase64}`;
+            audioPlayer.play();
+            statusEl.textContent = 'Синтез завершен!';
+
+        } catch (error) {
+            console.error('Ошибка синтеза:', error);
+            statusEl.textContent = `Ошибка: ${error.message}`;
+        } finally {
+            synthesizeBtn.disabled = false;
+        }
+    });
+
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognitionStatus = document.getElementById('recognition-status');
+    const listenBtn = document.getElementById('listenBtn');
+
+    if (SpeechRecognition) {
+        console.log("Web Speech API поддерживается."); // <-- ДОБАВЛЕНО
+
+        const recognition = new SpeechRecognition();
+
+        recognition.lang = 'en-US';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        listenBtn.addEventListener('click', () => {
+            console.log("Кнопка 'Слушать' нажата."); // <-- ДОБАВЛЕНО
+            if (listenBtn.classList.contains('listening')) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                } catch(e) {
+                    recognitionStatus.textContent = "Ошибка: микрофон уже используется.";
+                    console.error("Ошибка старта:", e); // <-- ДОБАВЛЕНО
+                }
+            }
+        });
+
+        recognition.onstart = () => {
+            recognitionStatus.textContent = "Слушаю... Говорите.";
+            listenBtn.textContent = "Остановить 🔴";
+            listenBtn.classList.add('listening');
+        };
+
+        recognition.onend = () => {
+            recognitionStatus.textContent = "Нажмите 'Слушать' для новой команды.";
+            listenBtn.textContent = "Слушать 🎤";
+            listenBtn.classList.remove('listening');
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Ошибка распознавания:", event.error); // <-- ДОБАВЛЕНО
+            if(event.error === 'no-speech') {
+                recognitionStatus.textContent = "Ничего не расслышал. Попробуйте снова.";
+            } else if (event.error === 'not-allowed') {
+                recognitionStatus.textContent = "ОШИБКА: Доступ к микрофону заблокирован. Разрешите его в настройках браузера (значок 🔒).";
+            } else {
+                recognitionStatus.textContent = `Ошибка распознавания: ${event.error}`;
+            }
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.toLowerCase().trim();
+
+            recognitionStatus.textContent = `Распознано: "${transcript}"`;
+
+            if (transcript === 'speak') {
+                statusEl.textContent = "Выполняю команду 'Speak'...";
+                synthesizeBtn.click();
+            }
+
+            else if (transcript === 'clear') {
+                statusEl.textContent = "Выполняю команду 'Clear'...";
+                textInput.value = "";
+            }
+
+            else {
+                recognitionStatus.textContent = `Команда "${transcript}" не найдена. Доступно: 'speak' или 'clear'.`;
+            }
+        };
+
+    } else {
+        recognitionStatus.textContent = "Ошибка: Web Speech API не поддерживается в вашем браузере.";
+        listenBtn.disabled = true;
+    }
+
+</script>
+
+</body>
+</html>
