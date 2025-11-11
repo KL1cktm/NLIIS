@@ -15,9 +15,9 @@ import java.util.Base64;
 @Controller
 public class SpeechController {
 
-    private final ElevenLabsService ttsService; // ИЗМЕНЕНО
+    private final ElevenLabsService ttsService;
 
-    public SpeechController(ElevenLabsService ttsService) { // ИЗМЕНЕНО
+    public SpeechController(ElevenLabsService ttsService) {
         this.ttsService = ttsService;
     }
 
@@ -34,11 +34,10 @@ public class SpeechController {
             byte[] audioData = ttsService.synthesize(request);
             String audioBase64 = Base64.getEncoder().encodeToString(audioData);
 
-            // ElevenLabs возвращает MP3
             SynthesisResponse response = new SynthesisResponse(audioBase64, "audio/mpeg");
             return ResponseEntity.ok(response);
 
-        } catch (Exception e) { // Ловим общую ошибку
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
